@@ -1,0 +1,61 @@
+# ==============================================================================
+# iventoy-netloop: Dynamic Network Menu Template
+# Demonstrates Pure NetLoop HTTP 206 Loopback partition extraction & boot
+# ==============================================================================
+
+set timeout=5
+set default=0
+
+# Industrial Cyber Theme
+set menu_color_normal=white/black
+set menu_color_highlight=black/cyan
+
+insmod all_video
+set gfxmode=1280x800,1024x768,auto
+set gfxpayload=keep
+
+menuentry ">> [Pure NetLoop] CachyOS 142GB Ext4 (0001COSext4.vhd.vtoy) <<" {
+    insmod http
+    insmod loopback
+    insmod part_gpt
+    insmod ext2
+    insmod linux
+    
+    echo "[1/4] Establishing HTTP 206 Loopback to 0001COSext4.vhd.vtoy (142GB)..."
+    loopback loop (http,${net_default_server}:26001)/iso/0001COSext4.vhd.vtoy
+    
+    echo "[2/4] Parsing internal GPT table and extracting CachyOS kernel..."
+    linux (loop,gpt2)/boot/vmlinuz-linux-cachyos console=ttyS0 console=tty0 root=UUID=f80dc16b-e328-40f4-8db8-f30faf11a445 ro verbose
+    
+    echo "[3/4] Extracting CachyOS native initramfs from loopback block device..."
+    initrd (loop,gpt2)/boot/initramfs-linux-cachyos.img
+    
+    echo "[4/4] Executing kernel and launching CachyOS..."
+    boot
+}
+
+menuentry ">> [Pure NetLoop] antiX Linux 8GB Btrfs (anitix8g.vhd.vtoy) <<" {
+    insmod http
+    insmod loopback
+    insmod part_gpt
+    insmod btrfs
+    insmod linux
+    
+    echo "[1/4] Establishing HTTP 206 Loopback to anitix8g.vhd.vtoy (8GB)..."
+    loopback loop (http,${net_default_server}:26001)/iso/anitix8g.vhd.vtoy
+    
+    echo "[2/4] Parsing GPT and extracting antiX kernel..."
+    linux (loop,gpt3)/boot/vmlinuz-6.6.119-antix.1-amd64-smp console=ttyS0 console=tty0 root=UUID=d1b65f8f-9d38-4e06-a902-8ff9240921c5 ro verbose
+    
+    echo "[3/4] Extracting antiX native initramfs..."
+    initrd (loop,gpt3)/boot/initrd.img-6.6.119-antix.1-amd64-smp
+    
+    echo "[4/4] Executing kernel..."
+    boot
+}
+
+menuentry ">> Commandline & Diagnostic Tools <<" {
+    echo "Network default server: ${net_default_server}"
+    echo "Current root: ${root}"
+    echo "Press ESC to return to menu..."
+}
