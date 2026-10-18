@@ -12,7 +12,7 @@ CONFIG_DIR="${SCRIPT_DIR}/config"
 
 mkdir -p "${BIN_DIR}/i386-pc" "${BIN_DIR}/x86_64-efi"
 
-MODULES="http net loopback part_gpt part_msdos ext2 btrfs fat ntfs iso9660 normal boot linux echo test ls date search tftp all_video gfxterm"
+MODULES="http net loopback part_gpt part_msdos ext2 btrfs fat ntfs iso9660 normal boot linux chain cpio serial terminal echo test ls date search tftp all_video gfxterm"
 
 echo "[1/2] Building BIOS PXE image (i386-pc core.0)..."
 grub-mkimage \
