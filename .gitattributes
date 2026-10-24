@@ -1,0 +1,5 @@
+# Language detection overrides
+tools/* linguist-vendored=true
+*.py linguist-vendored=true
+build_netboot.sh linguist-language=Shell
+server/src/*.rs linguist-language=Rust
