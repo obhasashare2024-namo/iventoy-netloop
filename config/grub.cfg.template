@@ -54,6 +54,41 @@ menuentry ">> [Pure NetLoop] antiX Linux 8GB Btrfs (anitix8g.vhd.vtoy) <<" {
     boot
 }
 
+
+menuentry ">> [Pure NetLoop] Artix Linux 60GB Ext4 (artixEFIext4utility.img.vtoy) <<" --id artix {
+    insmod http
+    insmod loopback
+    insmod part_gpt
+    insmod ext2
+    insmod linux
+    
+    echo "[1/4] Establishing HTTP 206 Loopback to artixEFIext4utility.img.vtoy (60GB)..."
+    loopback loop (http,${net_default_server}:26001)/iso/artixEFIext4utility.img.vtoy
+    
+    echo "[2/4] Parsing GPT and extracting Artix native kernel..."
+    linux (loop,gpt2)/boot/vmlinuz-linux console=tty0 console=ttyS0,115200 root=UUID=2f3dfbe7-4552-4c18-8a94-44875535389c rw verbose fsck.mode=skip
+    
+    echo "[3/4] Extracting Artix native initramfs from loopback..."
+    initrd (loop,gpt2)/boot/initramfs-linux.img
+    
+    echo "[4/4] Executing kernel and launching Artix Utility Desktop..."
+    boot
+}
+
+menuentry ">> [NetLoop WinPE Wimboot] WinPE Test CPIO (winpe_test.cpio) <<" --id winpe {
+    insmod http
+    insmod linux
+    
+    echo "[1/3] Loading wimboot binary..."
+    linux (http,${net_default_server}:26001)/iso/wimboot.x86_64
+    
+    echo "[2/3] Loading WinPE RAMDisk (131MB)..."
+    initrd (http,${net_default_server}:26001)/iso/winpe_test.cpio
+    
+    echo "[3/3] Executing wimboot..."
+    boot
+}
+
 menuentry ">> Commandline & Diagnostic Tools <<" {
     echo "Network default server: ${net_default_server}"
     echo "Current root: ${root}"
