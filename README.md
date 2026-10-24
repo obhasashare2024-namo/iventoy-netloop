@@ -1,9 +1,10 @@
 # iventoy-netloop (Pure HTTP 206 Loopback)
 
-**Zero Server State, Pure HTTP 206 Range Network Virtual Disk Bootloader**  
-*Stateless HTTP Streaming · 186 MB/s Byte-Range Throughput · Multi-partition GPT/Btrfs/Ext4 · 142GB Verified · Lightweight NAS & OpenWrt Ready*
+**Zero Server State, Pure HTTP 206 Range Network Virtual Disk Bootloader & Standalone Rust Server**  
+*100% Pure Rust Server · Stateless HTTP Streaming · 186 MB/s Byte-Range Throughput · Multi-partition GPT/Btrfs/Ext4 · 142GB Verified · Multiple Initrd Dynamic Overlay · Lightweight NAS & OpenWrt Ready*
 
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![Language](https://img.shields.io/badge/language-100%25%20Pure%20Rust-blueviolet?style=flat-square)](https://github.com/obhasashare2024-namo/iventoy-netloop)
 [![Platform](https://img.shields.io/badge/bootloader-GRUB2%20(BIOS%20%7C%20UEFI)-orange?style=flat-square)](https://github.com/obhasashare2024-namo/iventoy-netloop)
 [![Verified](https://img.shields.io/badge/verified-142GB%20COS%20%7C%2075GB%20Win11%20%7C%2060GB%20Artix-green?style=flat-square)](https://github.com/obhasashare2024-namo/iventoy-netloop)
 
@@ -14,6 +15,7 @@
 - [🇨🇳 中文說明 (Default Chinese)](#-中文說明-default-chinese)
   - [🚀 項目概述 (Overview)](#-項目概述-overview)
   - [💎 模式 2（NetLoop GRUB HTTP 206）超大檔案穩定支援](#-模式-2netloop-grub-http-206超大檔案穩定支援)
+  - [🧬 多重 Initrd 動態疊加（Multiple Initrd Dynamic Overlay）](#-多重-initrd-動態疊加multiple-initrd-dynamic-overlay)
   - [🏛️ 系統架構 (System Architecture)](#️-系統架構-system-architecture)
   - [🛠️ 輕量 NAS 與 OpenWrt (op) 支援](#️-輕量-nas-與-openwrt-op-支援)
   - [📊 實機硬體驗收記錄](#-實機硬體驗收記錄)
@@ -29,12 +31,12 @@
 
 ### 🚀 項目概述 (Overview)
 
-`iventoy-netloop`（代號：**方案 B - Pure NetLoop HTTP 206 深度循環掛載引導系統**）是一種打破傳統網絡引導思維的**純無狀態（Stateless）虛擬磁碟網絡開機引導程序**。
+`iventoy-netloop`（代號：**模式 2 - Pure NetLoop HTTP 206 深度循環掛載引導系統**）是一種打破傳統網絡引導思維的**純無狀態（Stateless）虛擬磁碟網絡開機引導程序與純 Rust 服務端**。
 
 傳統網絡開機（包括官方 iVentoy、PXE-NBD、SANBOOT iSCSI）在伺服器端必須為每個連入客戶端維持繁重的塊設備守護進程（如 `qemu-nbd`、`tgtadm`、專用代理協議）。一旦客戶端數量激增或遭遇網絡抖動，伺服器端口與長連接隊列極易耗盡崩潰。
 
-`iventoy-netloop` 採用標準的 **HTTP 1.1 Partial Content (RFC 7233 / Byte-Range 206)** 與 GRUB2 原生 `loopback (http)` 模組技術：
-1. **伺服器端 0% 狀態開銷**：伺服器只是一個普通的靜態 HTTP 檔案伺服器（Nginx / Caddy 或 `iventoymersed` 輕量服務），**無需啟動任何 NBD/iSCSI 後台進程**；
+`iventoy-netloop` 採用標準的 **HTTP 1.1 Partial Content (RFC 7233 / Byte-Range 206)** 與 GRUB2 原生 `loopback (http)` 模組技術，服務端全量純 Rust 實現：
+1. **伺服器端 0% 狀態開銷**：伺服器採用輕量級純 Rust 零依賴 HTTP 206 串流引擎（`server/src/main.rs`），**無需啟動任何 NBD/iSCSI 後台進程**；
 2. **客戶端遠程透明解算**：客戶端 GRUB 直接透過 HTTP 206 協議按需隨機拉取遠程磁碟（VHD/RAW/IMG）的 GPT 分區表、超級塊與目錄樹，**如同將 142GB 遠程硬碟以隨機扇區方式插入本機記憶體**；
 3. **無損提取原生內核**：直接在客戶端解壓並執行目標作業系統自帶的專屬內核（如 CachyOS v7.0 內核），徹底規避跨發行版通用內核版本不相容的頑疾。
 
@@ -44,9 +46,27 @@
 
 在最新版本中，`iventoy-netloop` 針對**超大檔案網絡開機穩定性**進行了深度加固：
 - **142GB+ 巨型虛擬磁盤隨機秒級命中**：實測支持 **142GB COS (CachyOS) / 75GB Win11 VHDX / 60GB Artix / 8GB antiX**。客戶端無需下載整包映像，開機秒級掛載 GPT 分區表；
-- **HTTP 小寫 Header 相容性修復**：GRUB HTTP 網絡模組在處理部分現代 Web 伺服器回傳的小寫 `content-range` / `content-length` 時會引發狀態機解析中斷。我們全面加固了 HTTP 協議棧解析與分段緩衝區對齊；
+- **HTTP 小寫 Header 相容性修復**：GRUB HTTP 網絡模組在處理部分現代 Web 伺服器回傳的小寫 `content-range` / `content-length` 時會引發狀態機解析中斷。純 Rust 服務端實作大小寫無關的 Header 解析與分段緩衝區對齊；
 - **Fixed VHD 512B Conectix 尾部自動識別**：針對微軟固定大小 VHD 鏡像末尾的 512 位元組 Conectix 標記，配合後端自動剔除偏移，確保 GPT 備份頭與 MBR 扇區精確對齊；
 - **增強型 grubnet.efi 獨立引導二進制**：內建 `serial`, `terminal`, `http`, `loopback`, `part_gpt`, `ext2`, `btrfs`, `linux`, `chain`, `cpio` 模組，預設支援串口終端（115200 波特率）即時監控與人機共查。
+
+---
+
+### 🧬 多重 Initrd 動態疊加（Multiple Initrd Dynamic Overlay）
+
+傳統無盤系統中，Linux 母盤必須預先在 chroot 內執行 `vtoyboot.sh`，否則 GRUB 交付給內核（`ExitBootServices`）後，由於 GRUB HTTP 網絡棧銷毀，原生母盤 initramfs 因缺少網絡鉤子而報錯 `ALERT! UUID does not exist`。
+
+`iventoy-netloop` 實現了**終極優雅的零侵入無盤方案**：
+利用 Linux 內核與現代 GRUB2 的多重 Initrd 原語，在開機瞬間於記憶體中將伺服器動態下發的 `vtoy_overlay.cpio` 與母盤原生 initramfs 疊加解包：
+```grub
+menuentry "Native Linux (Zero-Touch Dual Initrd Overlay)" {
+    loopback loop (http,${srv}:26001)/iso/0001COSext4.vhd.vtoy
+    linux (loop,gpt2)/boot/vmlinuz-linux root=/dev/nbd0p2 rw ip=dhcp nbdroot=${srv} nbdport=10810
+    initrd (loop,gpt2)/boot/initramfs-linux.img (http,${srv}:26001)/vtoy/vtoy_overlay.cpio
+}
+```
+- **母盤 100% 保持只讀與純淨**：徹底告別繁瑣的母盤預處理；
+- **多體系自動相容**：Overlay 內建跨發行版 Hook，完美覆蓋 `initramfs-tools` (Debian/Ubuntu/antiX)、`dracut` (Fedora/RHEL/openSUSE) 以及 `mkinitcpio` (Arch/Artix)。
 
 ---
 
@@ -79,7 +99,7 @@
 |       - Discovers Partition 2: Linux Root (Offset: 852492288)                 |
 |       - Mounts (loop,gpt2) with native ext2.mod / btrfs.mod                   |
 |   [4] Reads Native Kernel: (loop,gpt2)/boot/vmlinuz-linux-cachyos             |
-|   [5] Reads Native Initrd: (loop,gpt2)/boot/initramfs-linux-cachyos.img       |
+|   [5] Reads Dual Initrd: Native Mother Initrd + Dynamic vtoy_overlay.cpio     |
 |   [6] boot -> Native OS boots and mounts Real Root                           |
 +-------------------------------------------------------------------------------+
 ```
@@ -89,7 +109,7 @@
 ### 🛠️ 輕量 NAS 與 OpenWrt (op) 支援
 
 `iventoy-netloop` 的核心優勢在於**伺服器端只需提供標準 HTTP 206 Byte-Range 檔案服務**。這使得它能夠以零開銷運行於各類輕量邊緣設備：
-- **OpenWrt (op) 路由器**：無論是極路由 X（HC5961 / MT7621 / Cortex-A7）、軟路由（x86 / N100 / J4125）、還是常見的電視盒子（斐訊 N1 / S905D），只需安裝輕量 Nginx、uhttpd 或配合 `iventoymersed`（1.7MB 靜態 Musl 二進制），即可將路由器轉化為高並發無盤引導站點；
+- **OpenWrt (op) 路由器**：無論是極路由 X（HC5961 / MT7621 / Cortex-A7）、軟路由（x86 / N100 / J4125）、還是常見的電視盒子（斐訊 N1 / S905D），只需安裝輕量 Nginx、uhttpd 或配套的純 Rust 伺服器，即可將路由器轉化為高並發無盤引導站點；
 - **輕量家庭 NAS**：完美支援 **TrueNAS**、**CasaOS**、**Unraid**、群暉（Synology）、威聯通（QNAP）等系統。伺服器端 CPU 待機率 0.0%，即便千兆頻寬拉滿隨機讀取，CPU 佔用率亦 < 5%；
 - **抗網絡抖動能力**：在 Wi-Fi 橋接或不穩定局域網環境下，HTTP 206 具備原生冪等重試特性，不會因單次超時導致伺服器塊設備崩潰。
 
@@ -117,9 +137,11 @@
 
 | 特性維度 | 傳統網絡啟動 (方案 A / iVentoy) | **iventoy-netloop (方案 B)** |
 | :--- | :--- | :--- |
+| **代碼語言** | 閉源 C/C++ 專有二進制 | **100% 開源純 Rust** |
 | **伺服器狀態性** | 有狀態（Stateful TCP NBD/iSCSI 連接） | **100% 無狀態（Stateless HTTP 206）** |
 | **後端進程佔用** | 需為每磁碟維護 `qemu-nbd` 進程 | **零守護進程，標準 Web 伺服器即可** |
 | **伺服器 CPU/記憶體** | 隨連接數增加，有 socket 開銷 | **0.0% CPU 待機，近乎零額外開銷** |
+| **母盤侵入性** | 需在母盤內手動執行 `vtoyboot.sh` | **多重 Initrd 動態疊加 (100% 零侵入)** |
 | **內核相容性** | 依賴統一外置引導內核（易版本失配） | **直接讀取虛擬磁碟內原生發行版內核** |
 | **超大鏡像支援** | 100GB+ 鏡像啟動易超時 | **142 GB 鏡像隨機秒級命中 (186 MB/s)** |
 | **輕量 NAS / op 路由器** | 部署複雜（需 glibc 與 nbd 內核模組） | **開箱即用（僅需標準 HTTP 服務）** |
@@ -133,11 +155,10 @@
 ./build_netboot.sh
 ```
 
-#### 2. 啟動 HTTP 206 串流服務
-使用 Nginx、Caddy 或配套的 `iventoymersed` 二進制：
+#### 2. 編譯與啟動純 Rust HTTP 206 串流服務
 ```bash
-# 使用 iventoymersed
-./iventoymersed --dir /path/to/virtual_disks --port 26001
+cd server && cargo build --release
+./target/release/server --dir /path/to/virtual_disks --port 26001
 ```
 
 #### 3. 客戶端網絡開機配置
@@ -152,12 +173,14 @@
 
 ### Overview & Highlights
 
-`iventoy-netloop` (Track B: Pure NetLoop HTTP 206 Loopback Bootloader) is a **100% stateless virtual disk network booting framework**.
+`iventoy-netloop` (Track B: Pure NetLoop HTTP 206 Loopback Bootloader & Rust Server) is a **100% stateless virtual disk network booting framework**.
 
-Instead of requiring server-side stateful block daemons (such as `qemu-nbd` or `tgtadm`), `iventoy-netloop` leverages standard **RFC 7233 HTTP 1.1 Byte-Ranges (HTTP 206)** and GRUB2's native `loopback (http)` module. The client's bootloader extracts GPT partition tables, directory structures, and native kernels on-demand directly over HTTP with **186 MB/s random read throughput on Gigabit LAN**.
+Instead of requiring server-side stateful block daemons (such as `qemu-nbd` or `tgtadm`), `iventoy-netloop` leverages standard **RFC 7233 HTTP 1.1 Byte-Ranges (HTTP 206)**, GRUB2's native `loopback (http)` module, and a standalone pure Rust streaming server. The client's bootloader extracts GPT partition tables, directory structures, and native kernels on-demand directly over HTTP with **186 MB/s random read throughput on Gigabit LAN**.
 
 ### Key Highlights:
+- **100% Pure Rust Server**: Zero-dependency standalone streaming server in `server/src/main.rs`;
 - **Large File Stability (Mode 2)**: Fully verified on **142GB COS (CachyOS) / 75GB Win11 VHDX / 60GB Artix / 8GB antiX**;
+- **Multiple Initrd Dynamic Overlay**: Boots native Linux disks without `vtoyboot.sh` by dynamically layering server-provided network hooks in memory;
 - **HTTP Header Normalization**: Handles case-insensitive headers (`content-range`, `content-length`), resolving GRUB parser crash bugs;
 - **Fixed VHD Alignment**: Auto-detects Conectix footer and strips 512-byte metadata, preventing sector offset misalignments;
 - **Lightweight NAS & OpenWrt Ready**: Runs with zero server-side daemons on **OpenWrt (op)** routers, **TrueNAS**, **CasaOS**, and **Unraid** with < 5% CPU usage.
@@ -168,12 +191,14 @@ Instead of requiring server-side stateful block daemons (such as `qemu-nbd` or `
 
 ### 概要およびハイライト
 
-`iventoy-netloop`（方式 B：Pure NetLoop HTTP 206 ループバックブートローダー）は、**完全ステートレス（サーバー側セッション維持不要）な仮想ディスクネットワークブートソリューション**です。
+`iventoy-netloop`（方式 B：Pure NetLoop HTTP 206 ループバックブートローダーおよび Rust サーバー）は、**完全ステートレス（サーバー側セッション維持不要）な仮想ディスクネットワークブートソリューション**です。
 
 サーバー側で `qemu-nbd` などの常駐デーモンを起動する必要がなく、標準的な **HTTP 1.1 Byte-Range (RFC 7233)** と GRUB2 の `loopback (http)` 機能を利用して、クライアントの GRUB がリモートの仮想ディスク（142GB COS、75GB Win11、60GB Artix など）から必要なセクタのみをオンデマンドで高速取得します。
 
 ### 主な特徴：
+- **100% Pure Rust サーバー**：依存関係ゼロの軽量ストリーミングサーバー（`server/src/main.rs`）；
 - **大容量イメージ（モード 2）の安定動作**：142GB CachyOS や 75GB Windows 11 VHDX を秒単位でマウントし起動；
+- **複数 Initrd 動的オーバーレイ**：`vtoyboot.sh` をマスターイメージに実行することなく、サーバーから動的にフックを注入してディスクレス起動；
 - **HTTP ヘッダー最適化**：小文字ヘッダーの正常処理とセクタアライメント補正；
 - **OpenWrt ルーターおよび軽量 NAS に対応**：安価なルーターや TrueNAS / CasaOS / Unraid 環境で 0% の待機 CPU 負荷で安定稼働。
 
