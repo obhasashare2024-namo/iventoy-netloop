@@ -12,7 +12,7 @@
 
 ## 目录 / Table of Contents / 目次
 
-- [🇨🇳 中文說明 (Default Chinese)](#-中文說明-default-chinese)
+- [🇹🇼 繁體中文說明 (Default Traditional Chinese)](#-繁體中文說明-default-traditional-chinese)
   - [🚀 項目概述 (Overview)](#-項目概述-overview)
   - [💎 模式 2（NetLoop GRUB HTTP 206）超大檔案穩定支援](#-模式-2netloop-grub-http-206超大檔案穩定支援)
   - [🧬 多重 Initrd 動態疊加（Multiple Initrd Dynamic Overlay）](#-多重-initrd-動態疊加multiple-initrd-dynamic-overlay)
@@ -27,7 +27,7 @@
 
 ---
 
-## 🇨🇳 中文說明 (Default Chinese)
+## 🇹🇼 繁體中文說明 (Default Traditional Chinese)
 
 ### 🚀 項目概述 (Overview)
 
